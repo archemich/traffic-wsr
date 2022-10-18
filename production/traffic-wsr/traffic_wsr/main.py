@@ -2,6 +2,7 @@ import argparse
 
 from .version import __version__
 
+
 def parse_args() ->argparse.Namespace:
 
     parser = argparse.ArgumentParser(description=__doc__)
@@ -10,6 +11,7 @@ def parse_args() ->argparse.Namespace:
                         version=__version__)
     args = parser.parse_args()
     return args
+
 
 def main():
     """
