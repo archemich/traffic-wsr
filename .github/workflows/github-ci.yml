@@ -7,18 +7,40 @@ on:
   push:
     branches: [ "master", "develop" ]
   pull_request:
-    branches: [ "master",  "develop"]
+    branches: [ "master",  "develop" ]
 
 permissions:
   contents: read
 
 jobs:
   lint:
+    name: "lint"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/setup-python@v4
         with:
           python-version: '3.10'
-      - run: |
-          pip3 install pydocstyle flake8 flake8-docstrings flake8-quotes flake8_tuple pep8-naming flake8-colors
-      - run: flake .
+      - uses: actions/checkout@v3
+
+      - name: "Lint with flake8"
+        run: |
+          pip3 install pydocstyle flake8 flake8-docstrings \
+          flake8-quotes flake8_tuple pep8-naming flake8-colors && \
+          flake8 .
+
+  build:
+    name: "build"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - uses: actions/checkout@v3
+
+      - name: "Install app"
+        run: |
+          cd ./production/traffic-wsr && \
+          pip3 install .
+      - name: "Smoke test"
+        run: |
+          traffic-wsr --version
