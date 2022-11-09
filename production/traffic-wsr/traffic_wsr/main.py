@@ -5,7 +5,7 @@ from pathlib import Path
 from math import floor
 
 import pygame as pg
-
+import pygame.transform
 
 from .version import __version__
 
@@ -39,9 +39,9 @@ class Game:
     height: int
     fps: int
     assets_path: Path
-    map_zone: pg.Rect
+    map_rect: pg.Rect
     map_width: int
-    list_zone: pg.Rect
+    list_rect: pg.Rect
 
 
     def __init__(self,
@@ -98,6 +98,7 @@ class Game:
                     running = False
                 self._handle_lmb(event)
                 self._handle_rmb(event)
+                self._handle_keyboard(event)
 
             # Handle logic
             self.all_sprites.update()
@@ -113,10 +114,11 @@ class Game:
     def _handle_lmb(self, event):
         if event.type == pg.MOUSEBUTTONDOWN:
             if event.button == 1:
-                def drag(rect, mouse):
+                def drag(sprite, mouse):
                     mouse_x, mouse_y = mouse
+                    rect = sprite.rect
                     self.drag = {
-                        'rect': rect,
+                        'sprite': sprite,
                         'offset': {
                             'x': rect.x - mouse_x,
                             'y': rect.y - mouse_y
@@ -128,11 +130,11 @@ class Game:
                         cp = self._dup_sprite(sprite)
                         self.all_sprites.add(cp)
                         self.dynamic_sprites.add(cp)
-                        drag(cp.rect, event.pos)
+                        drag(cp, event.pos)
 
                 for sprite in self.dynamic_sprites:
                     if sprite.rect.collidepoint(event.pos):
-                        drag(sprite.rect, event.pos)
+                        drag(sprite, event.pos)
 
         elif event.type == pg.MOUSEBUTTONUP:
             if event.button == 1:
@@ -141,8 +143,9 @@ class Game:
         elif event.type == pg.MOUSEMOTION:
             if self.drag:
                 mouse_x, mouse_y = event.pos
-                self.drag['rect'].x = mouse_x + self.drag['offset']['x']
-                self.drag['rect'].y = mouse_y + self.drag['offset']['y']
+                rect = self.drag['sprite'].rect
+                rect.x = mouse_x + self.drag['offset']['x']
+                rect.y = mouse_y + self.drag['offset']['y']
 
     def _handle_rmb(self, event):
         if event.type == pg.MOUSEBUTTONDOWN:
@@ -155,10 +158,20 @@ class Game:
                 if self.to_delete:
                     if self.to_delete.rect.collidepoint(event.pos):
                         self.dynamic_sprites.remove(self.to_delete)
-                        self.all_sprites.remove((self.to_delete))
+                        self.all_sprites.remove(self.to_delete)
                         self.to_delete = None
 
-
+    def _handle_keyboard(self, event):
+        if event.type == pg.KEYDOWN:
+            if event.scancode == 21:
+                for sprite in self.dynamic_sprites:
+                    if sprite.rect.collidepoint(pygame.mouse.get_pos()):
+                        rot = -90
+                        # if left shift pressed rotate anti-clockwise
+                        if event.mod == 1:
+                            rot = 90
+                        sprite.image = pygame.transform.rotate(sprite.image,
+                                                               rot)
 
     @staticmethod
     def _load_sprites(assets_path: Path):
@@ -175,8 +188,8 @@ class Game:
         return cp
 
     def _init_ui(self):
-        self.map_zone = pg.Rect(0, 0, self.map_width, self.height)
-        self.list_zone = pg.Rect(self.map_width, 0,
+        self.map_rect = pg.Rect(0, 0, self.map_width, self.height)
+        self.list_rect = pg.Rect(self.map_width, 0,
                                  self.width - self.map_width, self.height)
 
         for i, spr in enumerate(self.static_sprites):
