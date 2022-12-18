@@ -3,6 +3,7 @@ import copy
 import logging
 from pathlib import Path
 from math import floor
+import numpy as np
 
 import pygame as pg
 import pygame.transform
@@ -33,27 +34,35 @@ class Road(pg.sprite.Sprite):
         self.image = image
         self.rect = self.image.get_rect()
 
+
 class Game:
 
     width: int
     height: int
+    width_cells: int
+    height_cells: int
+    cells: np.ndarray
     fps: int
     assets_path: Path
     map_rect: pg.Rect
-    map_width: int
+    list_width_cells: int = 5  # cells
     list_rect: pg.Rect
-
+    cell_size = 30  # px
 
     def __init__(self,
-                 width,
-                 height,
+                 width_cells,
+                 height_cells,
                  fps,
                  assets_path: Path):
-        Game.width = width
-        Game.height = height
+        Game.width_cells = width_cells
+        Game.height_cells = height_cells
+        Game.cells = np.full((height_cells, width_cells), [])
+        Game.width = width_cells * Game.cell_size
+        Game.height = height_cells * Game.cell_size
+        width = Game.width
+        height = Game.height
         Game.fps = fps
         Game.assets_path = assets_path
-        Game.map_width = floor(self.width * 0.8)
 
         self.drag = None
         self.to_delete = None
@@ -84,7 +93,6 @@ class Game:
         self._init_ui()
         self.all_sprites.draw(self.screen)
         pg.display.flip()
-
 
     def run(self):
         running = True
@@ -138,6 +146,12 @@ class Game:
 
         elif event.type == pg.MOUSEBUTTONUP:
             if event.button == 1:
+                mouse_x, mouse_y = event.pos
+                rect = self.drag['sprite'].rect
+                cell_x, cell_y = self._get_cell_by_pos(mouse_x, mouse_y)
+                rect.x = cell_x * self.cell_size
+                rect.y = cell_y * self.cell_size
+                self.cells[cell_y][cell_x].append(self.drag['sprite'])
                 self.drag = None
 
         elif event.type == pg.MOUSEMOTION:
@@ -188,18 +202,23 @@ class Game:
         return cp
 
     def _init_ui(self):
+        self.map_width = self.width - (self.list_width_cells * self.cell_size)
         self.map_rect = pg.Rect(0, 0, self.map_width, self.height)
         self.list_rect = pg.Rect(self.map_width, 0,
                                  self.width - self.map_width, self.height)
 
         for i, spr in enumerate(self.static_sprites):
-            offset = spr.rect.height + 12
-            y = spr.rect.height / 2
+            offset = self.cell_size + 12
+            y = self.cell_size / 2
             spr.rect.center = ((self.map_width + self.width) / 2, y + offset * i)
 
     def _draw_ui(self):
         pg.draw.line(self.screen, (0, 0, 0), (self.map_width, 0),
                      (self.map_width, self.height))
+
+    def _get_cell_by_pos(self, x, y):
+        """Get x,y of cell in pos."""
+        return x // self.cell_size, y // self.cell_size
 
 
 def main():
@@ -209,7 +228,7 @@ def main():
 
     args = parse_args()
 
-    game = Game(800, 600, 60, Path(__file__).parent / 'resources')
+    game = Game(20, 20, 60, Path(__file__).parent / 'resources')
     game.run()
 
 
