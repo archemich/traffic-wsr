@@ -5,4 +5,5 @@
 #    pip-compile requirements.in
 #
 pygame==2.1.2
+numpy==1.24.0
     # via -r requirements.in
